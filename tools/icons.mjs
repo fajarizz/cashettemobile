@@ -1,0 +1,158 @@
+﻿// Hugeicons -> Android VectorDrawable.
+//
+// cashetteweb draws its icons with @hugeicons/react at strokeWidth 2 (see
+// components/app-sidebar.tsx). There is no Android port of that set, and
+// material-icons-extended is a different drawing style — mixing the two would break
+// the mirror and CLAUDE.md's one-stroke-weight rule. So the drawables are generated
+// from the same source the web reads, the way Color.kt is generated from the web's
+// palette.
+//
+//   node tools/icons.mjs app/src/main/res/drawable
+//
+// Each source module is a 24x24 array of ["path", { d, stroke, strokeLinecap, ... }].
+// Strokes are emitted black and recoloured at the use site by Icon(tint = ...), which
+// applies a SrcIn ColorFilter over the whole drawable.
+
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+
+const SOURCE = "../cashetteweb/node_modules/@hugeicons/core-free-icons/dist/esm";
+
+// Android resource name -> Hugeicons module. Names on the right are the exact ones
+// cashetteweb imports, so a change there is a one-line change here.
+const ICONS = {
+  // Bottom bar
+  ic_home: "DashboardSquare01Icon",
+  ic_chat: "ChatAdd01Icon",
+  ic_history: "MoneyExchange01Icon",
+  ic_money: "Wallet02Icon",
+
+  // FAB and its menu
+  ic_add: "PlusSignIcon",
+  ic_expense: "ArrowUpRight01Icon",
+  ic_income: "ArrowDownLeft01Icon",
+  ic_transfer: "ArrowDataTransferHorizontalIcon",
+
+  // Destinations one level down
+  ic_accounts: "ChartHistogramIcon",
+  ic_analytics: "Analytics01Icon",
+  ic_budget: "Target01Icon",
+  ic_debt: "Money01Icon",
+  ic_pockets: "PiggyBankIcon",
+  ic_settings: "Settings05Icon",
+  ic_subscriptions: "RepeatIcon",
+
+  // Account types, mirroring ACCOUNT_TYPE_ICONS in cashetteweb/src/lib/account-types.tsx
+  ic_account_cash: "Coins01Icon",
+  ic_account_bank: "BankIcon",
+  ic_account_ewallet: "SmartPhone01Icon",
+  ic_account_credit: "CreditCardIcon",
+
+  // Chrome
+  ic_back: "ArrowLeft01Icon",
+  ic_forward: "ArrowRight01Icon",
+  ic_calendar: "Calendar03Icon",
+  ic_send: "SentIcon",
+};
+
+// The web overrides Hugeicons' 1.5 default to 2 on every icon it renders.
+const STROKE_WIDTH = 2;
+
+const CAP = { butt: "butt", round: "round", square: "square" };
+const JOIN = { miter: "miter", round: "round", bevel: "bevel" };
+
+const n = (v) => Number(v ?? 0);
+const r3 = (v) => Number(v.toFixed(3));
+
+// VectorDrawable has no shape primitives â€” only <path>. SVG's ellipse/circle/rect/line
+// therefore have to be rewritten as path data, or the icon silently loses strokes.
+const TO_PATH = {
+  ellipse: (a) => arcPath(n(a.cx), n(a.cy), n(a.rx), n(a.ry)),
+  circle: (a) => arcPath(n(a.cx), n(a.cy), n(a.r), n(a.r)),
+  line: (a) => `M${n(a.x1)},${n(a.y1)} L${n(a.x2)},${n(a.y2)}`,
+  rect: (a) => rectPath(n(a.x), n(a.y), n(a.width), n(a.height), n(a.rx || a.ry)),
+};
+
+/** Two half-turn arcs, because a single arc of 360Â° is degenerate. */
+function arcPath(cx, cy, rx, ry) {
+  const l = r3(cx - rx);
+  const r = r3(cx + rx);
+  return `M${l},${r3(cy)} A${r3(rx)},${r3(ry)} 0 1 0 ${r},${r3(cy)} A${r3(rx)},${r3(ry)} 0 1 0 ${l},${r3(cy)} Z`;
+}
+
+function rectPath(x, y, w, h, radius) {
+  if (!radius) return `M${r3(x)},${r3(y)} H${r3(x + w)} V${r3(y + h)} H${r3(x)} Z`;
+  const k = Math.min(radius, w / 2, h / 2);
+  return (
+    `M${r3(x + k)},${r3(y)} H${r3(x + w - k)} A${r3(k)},${r3(k)} 0 0 1 ${r3(x + w)},${r3(y + k)}` +
+    ` V${r3(y + h - k)} A${r3(k)},${r3(k)} 0 0 1 ${r3(x + w - k)},${r3(y + h)}` +
+    ` H${r3(x + k)} A${r3(k)},${r3(k)} 0 0 1 ${r3(x)},${r3(y + h - k)}` +
+    ` V${r3(y + k)} A${r3(k)},${r3(k)} 0 0 1 ${r3(x + k)},${r3(y)} Z`
+  );
+}
+
+/**
+ * Pulls the element list out of a module without executing it. Each entry looks like
+ *   ["path", { d: "M13.69 19.45Câ€¦", stroke: "currentColor", strokeWidth: "1.5", â€¦ }]
+ */
+function parseIcon(name) {
+  const file = join(SOURCE, `${name}.js`);
+  if (!existsSync(file)) throw new Error(`${name}: no such module at ${file}`);
+
+  const src = readFileSync(file, "utf8");
+  const entries = [...src.matchAll(/\["(\w+)",\s*\{([^}]*)\}\]/g)];
+  if (entries.length === 0) throw new Error(`${name}: parsed no elements`);
+
+  return entries.map(([, tag, raw], i) => {
+    const attrs = Object.fromEntries(
+      [...raw.matchAll(/\b(\w+):\s*"([^"]*)"/g)].map(([, k, v]) => [k, v])
+    );
+
+    const d = tag === "path" ? attrs.d : TO_PATH[tag]?.(attrs);
+    if (!d) throw new Error(`${name}: element ${i} is <${tag}>, which has no path conversion`);
+
+    return {
+      d,
+      cap: CAP[attrs.strokeLinecap] ?? "butt",
+      join: JOIN[attrs.strokeLinejoin] ?? "miter",
+    };
+  });
+}
+
+function toVector(paths) {
+  const body = paths
+    .map(
+      (p) => `    <path
+        android:pathData="${p.d}"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="${STROKE_WIDTH}"
+        android:strokeLineCap="${p.cap}"
+        android:strokeLineJoin="${p.join}" />`
+    )
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated by tools/icons.mjs. Do not edit; regenerate instead. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+${body}
+</vector>
+`;
+}
+
+const outDir = process.argv[2];
+if (!outDir) {
+  console.error("usage: node tools/icons.mjs <res/drawable dir>");
+  process.exit(1);
+}
+
+for (const [res, module] of Object.entries(ICONS)) {
+  const paths = parseIcon(module);
+  writeFileSync(join(outDir, `${res}.xml`), toVector(paths));
+  console.log(`${res.padEnd(20)} ${module.padEnd(34)} ${paths.length} path(s)`);
+}
+
+console.log(`\nwrote ${Object.keys(ICONS).length} drawables to ${outDir}`);

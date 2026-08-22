@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug builds only. Lives in src/debug/, so release builds never see it and keep
+  Android's default: HTTPS required.
+
+  The Go backend runs on plain HTTP during development. 10.0.2.2 is how the emulator
+  reaches the host machine's localhost; add your machine's LAN IP below when testing
+  on a physical device.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- adb reverse tcp:8080 tcp:8080 — works on phone and emulator alike -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <!-- Emulator's alias for the host machine, when not using the tunnel -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- This machine on Wi-Fi, for a phone on the same network -->
+        <domain includeSubdomains="true">192.168.1.254</domain>
+    </domain-config>
+</network-security-config>

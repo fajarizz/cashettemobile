@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirrors CashetteDarkColors. Only the window/splash needs these before Compose
+         draws; everything after comes from MaterialTheme.colorScheme. -->
+    <color name="cashette_background">#FF141500</color>
+    <color name="cashette_on_background">#FFE3E4D5</color>
+</resources>

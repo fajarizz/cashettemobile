@@ -1,0 +1,95 @@
+package com.basbasdev.cashette.data
+
+import com.basbasdev.cashette.data.model.AccountDto
+import com.basbasdev.cashette.data.model.BudgetDto
+import com.basbasdev.cashette.data.model.BudgetSummaryDto
+import com.basbasdev.cashette.data.model.CategoryDto
+import com.basbasdev.cashette.data.model.DueSubscriptionsDto
+import com.basbasdev.cashette.data.model.SubscriptionDto
+import com.basbasdev.cashette.data.model.TransactionDto
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.http.isSuccess
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import javax.inject.Inject
+import javax.inject.Named
+import javax.inject.Singleton
+
+/**
+ * The Go handler parses dates with `time.Parse("2006-01-02", …)` and, on failure,
+ * **drops the filter and returns everything unfiltered** rather than erroring. A wrong
+ * format therefore looks like working code with wrong numbers, so no caller formats a
+ * date itself.
+ */
+private val API_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+fun LocalDate.asApiDate(): String = format(API_DATE)
+
+@Singleton
+class LedgerApi @Inject constructor(
+    private val client: HttpClient,
+    @Named("apiBaseUrl") private val baseUrl: String,
+) {
+    suspend fun transactions(userId: String, from: LocalDate, to: LocalDate): List<TransactionDto> =
+        getList("/api/transactions") {
+            parameter("user_id", userId)
+            parameter("from_date", from.asApiDate())
+            parameter("to_date", to.asApiDate())
+        }
+
+    suspend fun accounts(userId: String): List<AccountDto> =
+        getList("/api/accounts") { parameter("user_id", userId) }
+
+    suspend fun categories(userId: String): List<CategoryDto> =
+        getList("/api/categories") { parameter("user_id", userId) }
+
+    suspend fun budgets(userId: String, month: Int, year: Int): List<BudgetDto> =
+        getList("/api/budgets") {
+            parameter("user_id", userId)
+            parameter("month", month)
+            parameter("year", year)
+        }
+
+    suspend fun budgetSummary(userId: String, month: Int, year: Int): BudgetSummaryDto =
+        get("/api/budgets/summary") {
+            parameter("user_id", userId)
+            parameter("month", month)
+            parameter("year", year)
+        }
+
+    suspend fun subscriptions(userId: String): List<SubscriptionDto> =
+        getList("/api/subscriptions") { parameter("user_id", userId) }
+
+    suspend fun dueSubscriptions(userId: String): DueSubscriptionsDto =
+        get("/api/subscriptions/due") { parameter("user_id", userId) }
+
+    /**
+     * `expectSuccess` is off on the shared client so the 401 validator can sign out
+     * cleanly, which means a non-2xx arrives here as a normal response. Turning it into
+     * an exception is this layer's job; callers then wrap it in a Result.
+     */
+    private suspend inline fun <reified T> get(
+        path: String,
+        crossinline block: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
+    ): T {
+        val response = client.get("$baseUrl$path") { block() }
+        if (!response.status.isSuccess()) {
+            error("${path.substringAfterLast('/')} failed (${response.status.value})")
+        }
+        return response.body()
+    }
+
+    /**
+     * Go marshals a nil slice as `null`, not `[]`, so every list endpoint returns null
+     * for an empty result — an empty month, a user with no subscriptions. Decoding that
+     * as a list throws, which would turn "nothing here yet" into an error state on the
+     * most common screen in the app.
+     */
+    private suspend inline fun <reified T> getList(
+        path: String,
+        crossinline block: io.ktor.client.request.HttpRequestBuilder.() -> Unit,
+    ): List<T> = get<List<T>?>(path, block) ?: emptyList()
+}

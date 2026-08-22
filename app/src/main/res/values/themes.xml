@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Cashette is dark only, like cashetteweb. A light parent here would flash white
+         between the launcher and Compose's first frame, whatever the Compose theme says. -->
+    <style name="Theme.Cashette" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/cashette_background</item>
+        <item name="android:colorBackground">@color/cashette_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Dark ground, so the system icons stay light even on a light-themed device. -->
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
