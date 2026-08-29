@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.basbasdev.cashette.auth.data.AuthRepository
 import com.basbasdev.cashette.data.toDataMessage
 import com.basbasdev.cashette.core.money.toAmount
+import com.basbasdev.cashette.core.text.sentenceCase
 import com.basbasdev.cashette.data.LedgerApi
 import com.basbasdev.cashette.data.model.AccountDto
 import com.basbasdev.cashette.data.model.SubscriptionDto
@@ -161,7 +162,8 @@ class HomeViewModel @Inject constructor(
             .map { tx ->
                 TxRow(
                     id = tx.id,
-                    title = tx.note?.takeIf { it.isNotBlank() } ?: tx.categoryName ?: "Untitled",
+                    title = (tx.note?.takeIf { it.isNotBlank() } ?: tx.categoryName ?: "Untitled")
+                        .sentenceCase(),
                     account = tx.accountName.orEmpty(),
                     date = tx.transactionDate.toDayLabel(),
                     amount = tx.amount.toAmount(),

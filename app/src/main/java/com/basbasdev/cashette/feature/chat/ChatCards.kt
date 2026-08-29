@@ -35,7 +35,7 @@ import com.basbasdev.cashette.data.model.BalanceResultDto
 import com.basbasdev.cashette.data.model.BudgetItemDto
 import com.basbasdev.cashette.data.model.ParseDto
 import com.basbasdev.cashette.data.model.SubscriptionItemDto
-import com.basbasdev.cashette.feature.home.Money
+import com.basbasdev.cashette.ui.components.Money
 import com.basbasdev.cashette.ui.theme.CashetteShape
 import com.basbasdev.cashette.ui.theme.CashetteText
 import com.basbasdev.cashette.ui.theme.CashetteTheme
@@ -84,10 +84,10 @@ fun ReplyCard(
     val parse = turn.parse ?: return
 
     parse.balanceResult?.let { BalanceCard(it); return }
-    parse.accountsResult?.let { ListCard(it.map(::accountEntry), "All accounts", onOpenAccounts); return }
-    parse.budgetsResult?.let { ListCard(it.map(::budgetEntry), "All budgets", onOpenBudget); return }
+    parse.accountsResult?.let { ListCard(it.map(::accountEntry), "accounts", onOpenAccounts); return }
+    parse.budgetsResult?.let { ListCard(it.map(::budgetEntry), "budgets", onOpenBudget); return }
     parse.subscriptionsResult?.let {
-        ListCard(it.map(::subscriptionEntry), "All subscriptions", onOpenSubscriptions)
+        ListCard(it.map(::subscriptionEntry), "subscriptions", onOpenSubscriptions)
         return
     }
 
@@ -165,9 +165,16 @@ private fun subscriptionEntry(s: SubscriptionItemDto) =
  * 90dp and truncates every name. A list reads them properly at this width.
  */
 @Composable
-private fun ListCard(entries: List<Entry>, action: String, onAction: () -> Unit) {
+private fun ListCard(entries: List<Entry>, noun: String, onAction: () -> Unit) {
+    // A chat reply is an answer, not a screen. Past five rows the card stops being
+    // readable in a transcript, and the button earns its place by saying what is still
+    // hidden — offering "All accounts" under a list that already shows them all is an
+    // action that does nothing.
+    val shown = entries.take(5)
+    val hidden = entries.size - shown.size
+
     CardShell {
-        entries.forEachIndexed { index, entry ->
+        shown.forEachIndexed { index, entry ->
             if (index > 0) {
                 HorizontalDivider(
                     Modifier.padding(vertical = 10.dp),
@@ -208,13 +215,18 @@ private fun ListCard(entries: List<Entry>, action: String, onAction: () -> Unit)
                 )
             }
         }
-        Spacer(Modifier.height(14.dp))
-        OutlinedButton(
-            onClick = onAction,
-            shape = CashetteShape.Pill,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(action, style = MaterialTheme.typography.labelMedium)
+        if (hidden > 0) {
+            Spacer(Modifier.height(14.dp))
+            OutlinedButton(
+                onClick = onAction,
+                shape = CashetteShape.Pill,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "$hidden more · all ${entries.size} $noun",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
         }
     }
 }

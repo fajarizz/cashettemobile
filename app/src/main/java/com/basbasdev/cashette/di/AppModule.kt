@@ -15,6 +15,7 @@ import io.github.jan.supabase.createSupabaseClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.header
@@ -75,6 +76,17 @@ object AppModule {
         expectSuccess = false
 
         install(ContentNegotiation) { json(json) }
+
+        // OkHttp defaults to a 10s read timeout, which the ledger endpoints never come
+        // near and the assistant never beats: a parse runs 8-15s, so every one of them
+        // was a coin flip. Worse, the app hanging up cancels Gin's request context and
+        // kills the inference call mid-flight, so the backend logs a 500 for what is
+        // really a client timeout. ChatApi raises this again for its own two calls.
+        install(HttpTimeout) {
+            connectTimeoutMillis = 10_000
+            requestTimeoutMillis = 30_000
+            socketTimeoutMillis = 30_000
+        }
 
         defaultRequest {
             contentType(ContentType.Application.Json)

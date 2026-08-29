@@ -30,14 +30,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.basbasdev.cashette.feature.AccountsScreen
 import com.basbasdev.cashette.feature.AnalyticsScreen
-import com.basbasdev.cashette.feature.BudgetScreen
-import com.basbasdev.cashette.feature.DebtScreen
-import com.basbasdev.cashette.feature.PocketsScreen
 import com.basbasdev.cashette.feature.SettingsScreen
-import com.basbasdev.cashette.feature.SubscriptionsScreen
+import com.basbasdev.cashette.feature.budget.BudgetScreen
 import com.basbasdev.cashette.feature.chat.ChatScreen
+import com.basbasdev.cashette.feature.money.AccountsScreen
+import com.basbasdev.cashette.feature.money.DebtScreen
+import com.basbasdev.cashette.feature.money.PocketsScreen
+import com.basbasdev.cashette.feature.subscriptions.SubscriptionsScreen
 import com.basbasdev.cashette.feature.history.HistoryScreen
 import com.basbasdev.cashette.feature.home.HomeScreen
 import com.basbasdev.cashette.feature.money.MoneyScreen
@@ -117,7 +117,13 @@ fun AppNavHost(
                     onOpenMoney = { navController.switchTab(TopLevelDestination.MONEY) },
                 )
             }
-            composable<ChatRoute> { ChatScreen() }
+            composable<ChatRoute> {
+                ChatScreen(
+                    onOpenAccounts = { navController.navigate(AccountsRoute) },
+                    onOpenBudget = { navController.navigate(BudgetRoute) },
+                    onOpenSubscriptions = { navController.navigate(SubscriptionsRoute) },
+                )
+            }
             composable<HistoryRoute> { HistoryScreen() }
             composable<MoneyRoute> {
                 MoneyScreen(

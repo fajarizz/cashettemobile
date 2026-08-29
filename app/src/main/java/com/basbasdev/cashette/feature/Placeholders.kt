@@ -22,17 +22,6 @@ import com.basbasdev.cashette.ui.components.EmptyState
 // any of them have data — and each moves to its own feature/<name>/ file as it is built.
 
 @Composable
-fun AccountsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeholder(
-    title = "Accounts",
-    icon = R.drawable.ic_accounts,
-    headline = "No accounts yet",
-    body = "Add the places your money actually sits — BCA, GoPay, cash — and every " +
-        "transaction can be filed against one.",
-    onBack = onBack,
-    modifier = modifier,
-)
-
-@Composable
 fun AnalyticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeholder(
     title = "Analytics",
     icon = R.drawable.ic_analytics,
@@ -43,49 +32,6 @@ fun AnalyticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeho
     modifier = modifier,
 )
 
-@Composable
-fun BudgetScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeholder(
-    title = "Budget",
-    icon = R.drawable.ic_budget,
-    headline = "No budgets set",
-    body = "Set a monthly limit per category and Home will tell you how much of it " +
-        "is left before you spend.",
-    onBack = onBack,
-    modifier = modifier,
-)
-
-@Composable
-fun DebtScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeholder(
-    title = "Debt & loans",
-    icon = R.drawable.ic_debt,
-    headline = "Nothing owed either way",
-    body = "Track what you owe and what's owed to you, and record repayments " +
-        "against the account they came from.",
-    onBack = onBack,
-    modifier = modifier,
-)
-
-@Composable
-fun PocketsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeholder(
-    title = "Pockets",
-    icon = R.drawable.ic_pockets,
-    headline = "No pockets yet",
-    body = "A pocket sets money aside inside an account — an emergency fund, a trip " +
-        "— with a target to work towards.",
-    onBack = onBack,
-    modifier = modifier,
-)
-
-@Composable
-fun SubscriptionsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeholder(
-    title = "Subscriptions",
-    icon = R.drawable.ic_subscriptions,
-    headline = "No recurring bills",
-    body = "Add the ones that bill on a schedule and Cashette reminds you the day " +
-        "they're due, ready to record in one tap.",
-    onBack = onBack,
-    modifier = modifier,
-)
 
 /**
  * Carries sign-out already, because the nav shell cannot be verified without it: the

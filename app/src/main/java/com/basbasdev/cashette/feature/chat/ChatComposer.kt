@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,7 +42,13 @@ import com.basbasdev.cashette.R
 import com.basbasdev.cashette.ui.theme.CashetteShape
 import kotlinx.coroutines.delay
 
-/** Mirrors the web's rotating prompts, at the same five-second cadence. */
+/**
+ * How long a suggestion holds before the next one. The web rotates every five seconds,
+ * which on a phone is motion in the corner of your eye the whole time you are reading the
+ * transcript — the one thing Operate mode does not spend attention on.
+ */
+private const val PROMPT_INTERVAL_MS = 15_000L
+
 private val PROMPTS = listOf(
     "Ask anything about your finances…",
     "Bought coffee for 25k",
@@ -65,6 +72,18 @@ fun ChatComposer(
     var text by remember { mutableStateOf("") }
     val canSend = enabled && text.isNotBlank()
 
+    // Keyed on emptiness, so typing cancels the rotation outright and clearing or sending
+    // restarts it — which spends the first interval as a cooldown. Coming back to a
+    // settled field that then changes under you is worse than one that never moved.
+    var promptIndex by remember { mutableIntStateOf(0) }
+    LaunchedEffect(text.isEmpty()) {
+        if (text.isNotEmpty()) return@LaunchedEffect
+        while (true) {
+            delay(PROMPT_INTERVAL_MS)
+            promptIndex = (promptIndex + 1) % PROMPTS.size
+        }
+    }
+
     Surface(
         shape = CashetteShape.Sheet,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -75,7 +94,7 @@ fun ChatComposer(
             verticalAlignment = Alignment.Bottom,
         ) {
             Box(Modifier.weight(1f).padding(bottom = 10.dp)) {
-                if (text.isEmpty()) RotatingPrompt()
+                if (text.isEmpty()) RotatingPrompt(promptIndex)
 
                 BasicTextField(
                     value = text,
@@ -120,7 +139,14 @@ fun ChatComposer(
                 Icon(
                     painter = painterResource(R.drawable.ic_send),
                     contentDescription = "Send",
-                    modifier = Modifier.size(20.dp),
+                    // The arrow's bounding box is centred but its mass is not: the body
+                    // sits lower-left and only the tip reaches upper-right, so centring
+                    // the box parks the glyph visibly high and right. Measured off the
+                    // rendered button, the ink centroid lands +1.3dp x / -1.1dp y of
+                    // centre; this puts it back.
+                    modifier = Modifier
+                        .size(20.dp)
+                        .offset(x = (-1.3).dp, y = 1.1.dp),
                 )
             }
         }
@@ -128,16 +154,7 @@ fun ChatComposer(
 }
 
 @Composable
-private fun RotatingPrompt() {
-    var index by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(5_000)
-            index = (index + 1) % PROMPTS.size
-        }
-    }
-
+private fun RotatingPrompt(index: Int) {
     AnimatedContent(
         targetState = index,
         transitionSpec = {

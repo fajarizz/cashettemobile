@@ -53,6 +53,8 @@ const ICONS = {
   ic_forward: "ArrowRight01Icon",
   ic_calendar: "Calendar03Icon",
   ic_send: "SentIcon",
+  ic_search: "Search01Icon",
+  ic_close: "Cancel01Icon",
 };
 
 // The web overrides Hugeicons' 1.5 default to 2 on every icon it renders.
@@ -64,7 +66,7 @@ const JOIN = { miter: "miter", round: "round", bevel: "bevel" };
 const n = (v) => Number(v ?? 0);
 const r3 = (v) => Number(v.toFixed(3));
 
-// VectorDrawable has no shape primitives â€” only <path>. SVG's ellipse/circle/rect/line
+// VectorDrawable has no shape primitives — only <path>. SVG's ellipse/circle/rect/line
 // therefore have to be rewritten as path data, or the icon silently loses strokes.
 const TO_PATH = {
   ellipse: (a) => arcPath(n(a.cx), n(a.cy), n(a.rx), n(a.ry)),
@@ -73,7 +75,7 @@ const TO_PATH = {
   rect: (a) => rectPath(n(a.x), n(a.y), n(a.width), n(a.height), n(a.rx || a.ry)),
 };
 
-/** Two half-turn arcs, because a single arc of 360Â° is degenerate. */
+/** Two half-turn arcs, because a single arc of 360° is degenerate. */
 function arcPath(cx, cy, rx, ry) {
   const l = r3(cx - rx);
   const r = r3(cx + rx);
@@ -93,7 +95,7 @@ function rectPath(x, y, w, h, radius) {
 
 /**
  * Pulls the element list out of a module without executing it. Each entry looks like
- *   ["path", { d: "M13.69 19.45Câ€¦", stroke: "currentColor", strokeWidth: "1.5", â€¦ }]
+ *   ["path", { d: "M13.69 19.45C…", stroke: "currentColor", strokeWidth: "1.5", … }]
  */
 function parseIcon(name) {
   const file = join(SOURCE, `${name}.js`);

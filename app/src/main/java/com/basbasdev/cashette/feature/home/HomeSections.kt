@@ -41,6 +41,9 @@ import com.basbasdev.cashette.R
 import com.basbasdev.cashette.core.money.toIdr
 import com.basbasdev.cashette.core.money.toSignedIdr
 import com.basbasdev.cashette.core.money.toSpokenIdr
+import com.basbasdev.cashette.ui.components.Caption
+import com.basbasdev.cashette.ui.components.Money
+import com.basbasdev.cashette.ui.components.Rail
 import com.basbasdev.cashette.ui.theme.CashetteMotion
 import com.basbasdev.cashette.ui.theme.CashetteShape
 import com.basbasdev.cashette.ui.theme.CashetteText
@@ -340,113 +343,5 @@ private fun String.accountIcon(): Int = when (this) {
     else -> R.drawable.ic_account_cash
 }
 
-// ── Shared parts ─────────────────────────────────────────────────────────────
-
-/** A section title on the ground, with its way out. No card — cards would nest. */
-@Composable
-fun SectionHeader(title: String, action: String? = null, onAction: (() -> Unit)? = null) {
-    Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        if (action != null && onAction != null) {
-            TextButton(onClick = onAction) {
-                Text(action, style = MaterialTheme.typography.labelMedium)
-            }
-        }
-    }
-}
-
-@Composable
-fun Caption(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier,
-    )
-}
-
-/**
- * Every money figure carries a spoken form. Read literally, "Rp 2.610.000" comes out of
- * TalkBack as "R P two point six one zero point zero zero zero".
- */
-@Composable
-fun Money(
-    text: String,
-    spoken: String,
-    style: androidx.compose.ui.text.TextStyle,
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        text = text,
-        style = style,
-        color = color,
-        maxLines = 1,
-        modifier = modifier.clearAndSetSemantics { contentDescription = spoken },
-    )
-}
-
-@Composable
-fun Rail(fraction: Float, fill: Color, height: androidx.compose.ui.unit.Dp) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(height)
-            .clip(CashetteShape.Pill)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .semantics {
-                progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
-            },
-    ) {
-        if (fraction > 0f) {
-            Box(
-                Modifier
-                    .fillMaxWidth(fraction)
-                    .fillMaxHeight()
-                    .clip(CashetteShape.Pill)
-                    .background(fill),
-            )
-        }
-    }
-}
-
-/** Skeletons shaped like the thing they stand in for. Never a spinner parked in content. */
-@Composable
-fun Skeleton(width: androidx.compose.ui.unit.Dp? = null, height: androidx.compose.ui.unit.Dp) {
-    val pulse by rememberInfiniteTransition(label = "skeleton").animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(CashetteMotion.shimmer, RepeatMode.Reverse),
-        label = "pulse",
-    )
-    Box(
-        Modifier
-            .then(if (width != null) Modifier.width(width) else Modifier.fillMaxWidth())
-            .height(height)
-            .clip(CashetteShape.Field)
-            .alpha(pulse)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-    )
-}
-
-/** A section that failed on its own. One retry, in place, not a whole-screen apology. */
-@Composable
-fun SectionError(message: String, onRetry: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Caption(message, Modifier.weight(1f))
-        TextButton(onClick = onRetry) {
-            Text("Retry", style = MaterialTheme.typography.labelMedium)
-        }
-    }
-}
+// Shared primitives — Money, Caption, Rail, Skeleton, SectionHeader, SectionError —
+// live in ui/components/Primitives.kt, because Chat needs them too.

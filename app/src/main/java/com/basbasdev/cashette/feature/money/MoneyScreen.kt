@@ -17,14 +17,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.basbasdev.cashette.R
+import com.basbasdev.cashette.core.money.toIdr
+import com.basbasdev.cashette.core.money.toSignedIdr
+import com.basbasdev.cashette.core.money.toSpokenIdr
+import com.basbasdev.cashette.ui.theme.CashetteTheme
+import com.basbasdev.cashette.feature.home.dataOrNull
 import com.basbasdev.cashette.ui.components.CashetteScreen
+import com.basbasdev.cashette.ui.components.Money
+import com.basbasdev.cashette.ui.components.Skeleton
 import com.basbasdev.cashette.ui.theme.CashetteShape
 import com.basbasdev.cashette.ui.theme.CashetteText
+import java.math.BigDecimal
 
 /**
  * The balance sheet — what the user holds and what they owe. A destination in its own
@@ -40,7 +51,10 @@ fun MoneyScreen(
     onOpenPockets: () -> Unit,
     onOpenDebt: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: MoneyViewModel = hiltViewModel(),
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
     CashetteScreen(title = "Money", modifier = modifier) { padding ->
         LazyColumn(
             state = listState,
@@ -52,11 +66,13 @@ fun MoneyScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { NetWorth() }
+            item { NetWorth(state) }
             item {
                 Section(
                     title = "Accounts",
-                    caption = "Bank, e-wallet and cash balances",
+                    caption = state.accounts.dataOrNull
+                        ?.let { "${it.size} account${if (it.size == 1) "" else "s"}" }
+                        ?: "Bank, e-wallet and cash balances",
                     icon = R.drawable.ic_accounts,
                     onClick = onOpenAccounts,
                 )
@@ -64,7 +80,13 @@ fun MoneyScreen(
             item {
                 Section(
                     title = "Pockets",
-                    caption = "Savings set aside, and how far along",
+                    caption = state.pockets.dataOrNull
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { pockets ->
+                            val held = pockets.fold(BigDecimal.ZERO) { acc, p -> acc + p.balance }
+                            "${held.toIdr()} set aside in ${pockets.size}"
+                        }
+                        ?: "Savings set aside, and how far along",
                     icon = R.drawable.ic_pockets,
                     onClick = onOpenPockets,
                 )
@@ -72,7 +94,13 @@ fun MoneyScreen(
             item {
                 Section(
                     title = "Debt",
-                    caption = "What you owe, and what's owed to you",
+                    caption = when {
+                        state.owed.signum() > 0 && state.owedToYou.signum() > 0 ->
+                            "${state.owed.toIdr()} owed · ${state.owedToYou.toIdr()} owed to you"
+                        state.owed.signum() > 0 -> "${state.owed.toIdr()} outstanding"
+                        state.owedToYou.signum() > 0 -> "${state.owedToYou.toIdr()} owed to you"
+                        else -> "What you owe, and what's owed to you"
+                    },
                     icon = R.drawable.ic_debt,
                     onClick = onOpenDebt,
                 )
@@ -82,7 +110,7 @@ fun MoneyScreen(
 }
 
 @Composable
-private fun NetWorth() {
+private fun NetWorth(state: MoneyUiState) {
     Surface(
         shape = CashetteShape.Hero,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -95,14 +123,31 @@ private fun NetWorth() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(6.dp))
+            if (state.netWorth == null) {
+                Skeleton(width = 200.dp, height = 36.dp)
+            } else {
+                // Owing more than you hold is a signed amount, so it wears the sign and
+                // the colour. Formatting the sign inside the figure would put it between
+                // "Rp" and the digits, which reads as a typo rather than a negative.
+                val negative = state.netWorth.signum() < 0
+                Money(
+                    text = if (negative) {
+                        state.netWorth.abs().toSignedIdr(negative = true)
+                    } else {
+                        state.netWorth.toIdr()
+                    },
+                    spoken = "${state.netWorth.abs().toSpokenIdr()} " +
+                        if (negative) "in the red" else "net worth",
+                    style = CashetteText.MoneyHero,
+                    color = if (negative) CashetteTheme.finance.expense
+                    else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Spacer(Modifier.height(6.dp))
             Text(
-                text = "Rp —",
-                style = CashetteText.MoneyHero,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Accounts and pockets, less what you owe",
+                // Pockets are excluded on purpose: they hold money that is already
+                // counted inside its parent account, so adding them would double it.
+                text = "Account balances, less what you owe",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
