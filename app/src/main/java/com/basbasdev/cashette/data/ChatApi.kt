@@ -43,21 +43,21 @@ class ChatApi @Inject constructor(
         return response.body()
     }
 
-    /**
-     * Sends a message to the assistant. Nothing is committed here — a reply that wants
-     * to change money comes back with `requires_confirmation` and waits.
-     */
-    suspend fun parse(message: String): ParseDto {
+    suspend fun models(): List<com.basbasdev.cashette.data.model.ModelInfoDto> {
+        val response = client.get("$baseUrl/api/chat/models")
+        if (!response.status.isSuccess()) return emptyList()
+        return response.body()
+    }
+
+    suspend fun parse(message: String, model: String? = null): ParseDto {
         val response = client.post("$baseUrl/api/chat/parse") {
-            setBody(ParseRequestDto(message))
+            setBody(ParseRequestDto(message = message, model = model))
             timeout {
                 requestTimeoutMillis = ASSISTANT_TIMEOUT_MS
                 socketTimeoutMillis = ASSISTANT_TIMEOUT_MS
             }
         }
         if (!response.status.isSuccess()) {
-            // The assistant is a shared, rate-limited resource; that is a state the user
-            // can act on, not a generic failure.
             if (response.status == HttpStatusCode.TooManyRequests) {
                 error("The assistant is busy right now. Give it a moment and try again.")
             }

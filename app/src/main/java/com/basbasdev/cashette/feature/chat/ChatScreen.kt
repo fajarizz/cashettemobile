@@ -50,19 +50,15 @@ import com.basbasdev.cashette.ui.components.EmptyState
 import com.basbasdev.cashette.ui.components.SectionError
 import com.basbasdev.cashette.ui.theme.CashetteShape
 
-/**
- * The thesis screen: a ledger you talk to. Recording by sentence is meant to be faster
- * than any form, so the composer owns the bottom edge permanently — which is why Chat is
- * the one top-level destination with no FAB over it.
- *
- * Nothing said here moves money on its own. A reply that would change a balance comes
- * back as a card stating its terms and waits for Confirm.
- *
- * The one top-level screen with **no top app bar**. A title reading "Chat" over a
- * selected "Chat" tab is a line of chrome that answers a question nobody asked, and it
- * costs 64dp of the only screen whose content is worth scrolling back through. The
- * transcript takes that height instead and runs under the status bar behind a fade.
- */
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.basbasdev.cashette.data.model.ModelInfoDto
+
 @Composable
 fun ChatScreen(
     onOpenAccounts: () -> Unit,
@@ -74,8 +70,6 @@ fun ChatScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
-    // Follow the conversation as it grows, but only when a turn is appended — paging
-    // older messages in must leave the reader where they were.
     LaunchedEffect(state.turns.size, state.thinking) {
         if (state.turns.isNotEmpty() && !state.loadingMore) {
             listState.animateScrollToItem(state.turns.lastIndex + if (state.thinking) 1 else 0)
@@ -92,8 +86,6 @@ fun ChatScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                // The bar's height is already consumed by AppScaffold, so this lifts the
-                // composer by exactly the keyboard and nothing more.
                 .imePadding(),
         ) {
             Box(Modifier.weight(1f)) {
@@ -117,7 +109,7 @@ fun ChatScreen(
                     else -> Transcript(
                         state = state,
                         listState = listState,
-                        topPadding = statusBar + 12.dp,
+                        topPadding = statusBar + 54.dp,
                         onLoadMore = viewModel::loadMore,
                         onConfirm = viewModel::confirm,
                         onCancel = viewModel::cancel,
@@ -131,24 +123,158 @@ fun ChatScreen(
             ChatComposer(onSend = viewModel::send, enabled = !state.sending)
         }
 
-        // Without a bar there is nothing between the top message and the clock, so the
-        // transcript dissolves into the ground instead of colliding with it. Ground to
-        // transparent, not a scrim: on a flat dark surface the two are indistinguishable
-        // where they overlap, and the message simply stops existing.
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(statusBar + 20.dp)
+                .height(statusBar + 54.dp)
                 .background(
                     Brush.verticalGradient(
                         0f to MaterialTheme.colorScheme.background,
-                        0.6f to MaterialTheme.colorScheme.background,
+                        0.7f to MaterialTheme.colorScheme.background,
                         1f to Color.Transparent,
                     ),
                 ),
         )
+
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+        ) {
+            ModelSelector(
+                selectedModel = state.selectedModel,
+                availableModels = state.availableModels,
+                onSelectModel = viewModel::selectModel,
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
+        }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelSelector(
+    selectedModel: ModelInfoDto?,
+    availableModels: List<ModelInfoDto>,
+    onSelectModel: (ModelInfoDto) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showSheet by remember { mutableStateOf(false) }
+
+    Surface(
+        onClick = { if (availableModels.isNotEmpty()) showSheet = true },
+        shape = CashetteShape.Pill,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        ) {
+            Text(
+                text = selectedModel?.name ?: "Select Model",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            val isFree = selectedModel?.isFree ?: true
+            Surface(
+                shape = CashetteShape.Pill,
+                color = if (isFree) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.tertiaryContainer,
+            ) {
+                Text(
+                    text = if (isFree) "Free" else "Paid",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isFree) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+        }
+    }
+
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheet = false },
+            shape = CashetteShape.Sheet,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) {
+            Column(
+                Modifier
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+                    .navigationBarsPadding(),
+            ) {
+                Text(
+                    text = "AI Model",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Choose the model used for intent parsing and speed benchmarking",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(20.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    availableModels.forEach { model ->
+                        val isSelected = selectedModel?.id == model.id
+                        Surface(
+                            onClick = {
+                                onSelectModel(model)
+                                showSheet = false
+                            },
+                            shape = CashetteShape.Card,
+                            color = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainer,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text(
+                                            text = model.name,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                        Surface(
+                                            shape = CashetteShape.Pill,
+                                            color = if (model.isFree) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.tertiaryContainer,
+                                        ) {
+                                            Text(
+                                                text = if (model.isFree) "Free" else "Paid",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (model.isFree) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onTertiaryContainer,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            )
+                                        }
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = "${model.provider} · ${model.description}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun Transcript(

@@ -104,4 +104,17 @@ data class ConfirmResponseDto(
 )
 
 @Serializable
-data class ParseRequestDto(val message: String)
+data class ModelInfoDto(
+    val id: String,
+    val name: String,
+    val provider: String,
+    @SerialName("is_free") val isFree: Boolean,
+    val description: String = "",
+)
+
+@Serializable
+data class ParseRequestDto(
+    val message: String,
+    val model: String? = null,
+)
+

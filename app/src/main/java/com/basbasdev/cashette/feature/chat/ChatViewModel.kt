@@ -39,6 +39,24 @@ class ChatViewModel @Inject constructor(
 
     init {
         loadHistory()
+        loadModels()
+    }
+
+    fun loadModels() {
+        viewModelScope.launch {
+            runCatching { api.models() }.onSuccess { models ->
+                _state.update {
+                    it.copy(
+                        availableModels = models,
+                        selectedModel = it.selectedModel ?: models.firstOrNull(),
+                    )
+                }
+            }
+        }
+    }
+
+    fun selectModel(model: com.basbasdev.cashette.data.model.ModelInfoDto) {
+        _state.update { it.copy(selectedModel = model) }
     }
 
     private fun loadHistory() {
@@ -69,6 +87,7 @@ class ChatViewModel @Inject constructor(
     fun retryHistory() {
         _state.update { it.copy(loadingHistory = true, historyError = null) }
         loadHistory()
+        loadModels()
     }
 
     fun loadMore() {
@@ -99,7 +118,6 @@ class ChatViewModel @Inject constructor(
         val message = text.trim()
         if (message.isEmpty() || _state.value.sending) return
 
-        // A bare "yes" answers the card that is still waiting rather than starting over.
         val pending = _state.value.turns.lastOrNull { it.awaitingAnswer }
         if (message.lowercase() in CONFIRM_WORDS && pending?.parse != null) {
             append(ChatTurn(newId(), Author.USER, message))
@@ -107,11 +125,13 @@ class ChatViewModel @Inject constructor(
             return
         }
 
+        val currentModel = _state.value.selectedModel?.id
+
         append(ChatTurn(newId(), Author.USER, message))
         _state.update { it.copy(thinking = true, sending = true) }
 
         viewModelScope.launch {
-            runCatching { api.parse(message) }.fold(
+            runCatching { api.parse(message, currentModel) }.fold(
                 onSuccess = { parse ->
                     append(
                         ChatTurn(
