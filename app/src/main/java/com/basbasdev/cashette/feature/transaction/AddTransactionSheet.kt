@@ -331,23 +331,30 @@ fun AddTransactionSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 OutlinedButton(
                     onClick = onDismiss,
                     shape = CashetteShape.Pill,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp),
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", style = MaterialTheme.typography.titleSmall)
                 }
 
                 Button(
                     onClick = ::submit,
                     enabled = !state.working && !state.loadingData,
                     shape = CashetteShape.Pill,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp),
                 ) {
                     Text(
-                        if (state.working) {
+                        text = if (state.working) {
                             "Saving…"
                         } else {
                             when (kind) {
@@ -356,6 +363,7 @@ fun AddTransactionSheet(
                                 TransactionKind.TRANSFER -> "Record Transfer"
                             }
                         },
+                        style = MaterialTheme.typography.titleSmall,
                     )
                 }
             }

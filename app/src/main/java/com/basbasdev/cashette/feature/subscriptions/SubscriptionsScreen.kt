@@ -311,8 +311,10 @@ private fun SubscriptionRow(
                 Button(
                     onClick = onRecord,
                     shape = CashetteShape.Pill,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Record payment", style = MaterialTheme.typography.labelLarge) }
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                ) { Text("Record payment", style = MaterialTheme.typography.titleSmall) }
             }
         }
     }

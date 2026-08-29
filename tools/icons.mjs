@@ -1,4 +1,4 @@
-﻿// Hugeicons -> Android VectorDrawable.
+// Hugeicons -> Android VectorDrawable.
 //
 // cashetteweb draws its icons with @hugeicons/react at strokeWidth 2 (see
 // components/app-sidebar.tsx). There is no Android port of that set, and
@@ -55,6 +55,7 @@ const ICONS = {
   ic_send: "SentIcon",
   ic_search: "Search01Icon",
   ic_close: "Cancel01Icon",
+  ic_cassette: "CassetteTapeIcon",
 };
 
 // The web overrides Hugeicons' 1.5 default to 2 on every icon it renders.

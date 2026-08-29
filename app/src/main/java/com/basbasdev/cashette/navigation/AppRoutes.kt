@@ -23,7 +23,7 @@ object MoneyRoute
 // ── One level down: reached from Home or from a Money section ────────────────
 
 @Serializable
-object AccountsRoute
+data class AccountsRoute(val initialAccountId: String? = null)
 
 @Serializable
 object AnalyticsRoute
@@ -42,3 +42,6 @@ object SettingsRoute
 
 @Serializable
 object SubscriptionsRoute
+
+@Serializable
+object EdgingRoute

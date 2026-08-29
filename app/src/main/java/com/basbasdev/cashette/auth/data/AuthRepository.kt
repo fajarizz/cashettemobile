@@ -19,6 +19,19 @@ class AuthRepository @Inject constructor(
 
     val currentUserId: String? get() = supabase.auth.currentUserOrNull()?.id
 
+    val currentUserEmail: String? get() = supabase.auth.currentUserOrNull()?.email
+
+    val currentFullName: String? get() = supabase.auth.currentUserOrNull()?.userMetadata?.get("full_name")?.let {
+        (it as? kotlinx.serialization.json.JsonPrimitive)?.content
+    }
+
+    suspend fun updateProfile(fullName: String): Result<Unit> = runCatching {
+        supabase.auth.updateUser {
+            data = buildJsonObject { put("full_name", fullName.trim()) }
+        }
+        Unit
+    }
+
     suspend fun signIn(email: String, password: String): Result<Unit> = runCatching {
         supabase.auth.signInWith(Email) {
             this.email = email.trim()

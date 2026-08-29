@@ -316,18 +316,35 @@ fun FormSheet(
             }
 
             Spacer(Modifier.height(24.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 OutlinedButton(
                     onClick = onDismiss,
                     shape = CashetteShape.Pill,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Cancel") }
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp),
+                ) {
+                    Text(
+                        text = "Cancel",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
                 Button(
                     onClick = onSubmit,
                     enabled = !submitting,
                     shape = CashetteShape.Pill,
-                    modifier = Modifier.weight(1f),
-                ) { Text(if (submitting) "Saving…" else submitLabel) }
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp),
+                ) {
+                    Text(
+                        text = if (submitting) "Saving…" else submitLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
             }
         }
     }
@@ -348,11 +365,27 @@ fun ConfirmDialog(
         title = { Text(title) },
         text = { Text(body) },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(confirmLabel, color = MaterialTheme.colorScheme.error)
+            Button(
+                onClick = onConfirm,
+                shape = CashetteShape.Pill,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+                modifier = Modifier.height(54.dp),
+            ) {
+                Text(confirmLabel, style = MaterialTheme.typography.titleSmall)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = CashetteShape.Pill,
+                modifier = Modifier.height(54.dp),
+            ) {
+                Text("Cancel", style = MaterialTheme.typography.titleSmall)
+            }
+        },
     )
 }
 

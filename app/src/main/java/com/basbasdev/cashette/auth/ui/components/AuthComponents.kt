@@ -135,7 +135,7 @@ fun AuthPrimaryButton(
         shape = CashetteShape.Pill,
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp),
+            .height(54.dp),
     ) {
         if (loading) {
             // The Expressive shape-morphing indicator, not a spinner.
@@ -143,7 +143,7 @@ fun AuthPrimaryButton(
                 LoadingIndicator(Modifier.size(24.dp))
             }
         } else {
-            Text(text, style = MaterialTheme.typography.labelLarge)
+            Text(text, style = MaterialTheme.typography.titleSmall)
         }
     }
 }

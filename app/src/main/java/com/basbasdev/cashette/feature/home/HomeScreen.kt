@@ -69,6 +69,7 @@ fun HomeScreen(
     onOpenAnalytics: () -> Unit,
     onOpenBudget: () -> Unit,
     onOpenSubscriptions: () -> Unit,
+    onOpenEdging: () -> Unit = {},
     onOpenHistory: () -> Unit,
     onOpenMoney: () -> Unit,
     modifier: Modifier = Modifier,
@@ -79,7 +80,14 @@ fun HomeScreen(
     CashetteScreen(
         title = "Cashette",
         modifier = modifier,
+        transparentTopBar = true,
         actions = {
+            IconButton(onClick = onOpenEdging) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_subscriptions),
+                    contentDescription = "Desire Delay",
+                )
+            }
             IconButton(onClick = onOpenAnalytics) {
                 Icon(
                     painter = painterResource(R.drawable.ic_analytics),
@@ -95,6 +103,7 @@ fun HomeScreen(
             padding = padding,
             listState = listState,
             onRefresh = viewModel::refresh,
+            onOpenAnalytics = onOpenAnalytics,
             onOpenBudget = onOpenBudget,
             onOpenSubscriptions = onOpenSubscriptions,
             onOpenHistory = onOpenHistory,
@@ -110,6 +119,7 @@ private fun HomeContent(
     padding: PaddingValues,
     listState: LazyListState,
     onRefresh: () -> Unit,
+    onOpenAnalytics: () -> Unit,
     onOpenBudget: () -> Unit,
     onOpenSubscriptions: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -142,6 +152,7 @@ private fun HomeContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             heroBlock(state, onOpenBudget, onRefresh)
+            trendBlock(state, onOpenAnalytics, onRefresh)
 
             // Something due today outranks any analysis of the past. It only jumps the
             // queue when that is actually true; otherwise it sits in its normal place.
@@ -207,6 +218,42 @@ private fun LazyListScope.heroBlock(
         }
 
         is Section.Data -> HeroCard(hero.value, state.monthLabel, onOpenBudget)
+    }
+}
+
+private fun LazyListScope.trendBlock(
+    state: HomeUiState,
+    onOpenAnalytics: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    when (val section = state.dailyTrend) {
+        is Section.Loading -> item(key = "trend-skeleton") {
+            Surface(
+                shape = CashetteShape.Hero,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Skeleton(width = 110.dp, height = 12.dp)
+                    Spacer(Modifier.height(10.dp))
+                    Skeleton(width = 160.dp, height = 28.dp)
+                    Spacer(Modifier.height(16.dp))
+                    Skeleton(height = 110.dp)
+                }
+            }
+        }
+        is Section.Failed -> Unit
+        is Section.Data -> {
+            if (section.value.points.isNotEmpty()) {
+                item(key = "trend-chart") {
+                    SpendingTrendCard(
+                        data = section.value,
+                        monthLabel = state.monthLabel,
+                        onClick = onOpenAnalytics,
+                    )
+                }
+            }
+        }
     }
 }
 

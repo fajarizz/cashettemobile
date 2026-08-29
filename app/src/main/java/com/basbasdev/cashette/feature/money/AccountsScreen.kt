@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,12 +77,24 @@ internal fun accountIconFor(type: String): Int = when (type) {
 fun AccountsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    initialAccountId: String? = null,
     viewModel: MoneyViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Holding?>(null) }
     var creating by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Holding?>(null) }
+    var initialHandled by remember(initialAccountId) { mutableStateOf(false) }
+
+    LaunchedEffect(state.accounts, initialAccountId, initialHandled) {
+        if (!initialHandled && initialAccountId != null && state.accounts is Section.Data) {
+            val account = (state.accounts as Section.Data).value.firstOrNull { it.id == initialAccountId }
+            if (account != null) {
+                editing = account
+                initialHandled = true
+            }
+        }
+    }
 
     CashetteScreen(title = "Accounts", onBack = onBack, modifier = modifier) { padding ->
         when (val section = state.accounts) {

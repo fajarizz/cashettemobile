@@ -4,17 +4,24 @@ import com.basbasdev.cashette.data.model.AccountDto
 import com.basbasdev.cashette.data.model.BudgetDto
 import com.basbasdev.cashette.data.model.BudgetSummaryDto
 import com.basbasdev.cashette.data.model.CategoryDto
+import com.basbasdev.cashette.data.model.ConsultAiBody
+import com.basbasdev.cashette.data.model.ConsultAiResponseDto
 import com.basbasdev.cashette.data.model.CreateAccountBody
 import com.basbasdev.cashette.data.model.CreateBudgetBody
 import com.basbasdev.cashette.data.model.CreateDebtBody
+import com.basbasdev.cashette.data.model.CreateEdgingBody
 import com.basbasdev.cashette.data.model.CreateSubscriptionBody
 import com.basbasdev.cashette.data.model.CreateTransactionBody
 import com.basbasdev.cashette.data.model.CreateTransferBody
 import com.basbasdev.cashette.data.model.DebtDto
 import com.basbasdev.cashette.data.model.DueSubscriptionsDto
+import com.basbasdev.cashette.data.model.EdgingDto
+import com.basbasdev.cashette.data.model.EdgingSummaryDto
 import com.basbasdev.cashette.data.model.ErrorDto
 import com.basbasdev.cashette.data.model.RecordSubscriptionBody
 import com.basbasdev.cashette.data.model.RepayDebtBody
+import com.basbasdev.cashette.data.model.ResolveEdgingBody
+import com.basbasdev.cashette.data.model.SatisfactionBody
 import com.basbasdev.cashette.data.model.SubscriptionDto
 import com.basbasdev.cashette.data.model.TransactionDto
 import com.basbasdev.cashette.data.model.UpdateAccountBody
@@ -128,6 +135,39 @@ class LedgerApi @Inject constructor(
 
     suspend fun repayDebt(id: String, userId: String, body: RepayDebtBody) =
         send(HttpMethod.Post, "/api/debts/$id/pay", body) { parameter("user_id", userId) }
+
+    suspend fun edgingItems(userId: String, status: String? = null): List<EdgingDto> =
+        getList("/api/edging") {
+            parameter("user_id", userId)
+            status?.let { parameter("status", it) }
+        }
+
+    suspend fun edgingSummary(userId: String): EdgingSummaryDto =
+        get("/api/edging/summary") { parameter("user_id", userId) }
+
+    suspend fun createEdgingItem(body: CreateEdgingBody) =
+        send(HttpMethod.Post, "/api/edging", body)
+
+    suspend fun resolveEdgingItem(id: String, body: ResolveEdgingBody) =
+        send(HttpMethod.Put, "/api/edging/$id/resolve", body)
+
+    suspend fun updateEdgingSatisfaction(id: String, body: SatisfactionBody) =
+        send(HttpMethod.Put, "/api/edging/$id/satisfaction", body)
+
+    suspend fun deleteEdgingItem(id: String) =
+        send(HttpMethod.Delete, "/api/edging/$id", null)
+
+    suspend fun consultAiEdging(body: ConsultAiBody): ConsultAiResponseDto {
+        val response = client.request("$baseUrl/api/edging/consult") {
+            this.method = HttpMethod.Post
+            setBody(body)
+        }
+        if (!response.status.isSuccess()) {
+            val detail = runCatching { response.body<ErrorDto>().error }.getOrNull()
+            error(detail ?: "AI consultation failed (${response.status.value})")
+        }
+        return response.body()
+    }
 
     /**
      * Writes return the created row, which no caller needs — only whether it worked. The

@@ -33,41 +33,7 @@ fun AnalyticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) = Placeho
 )
 
 
-/**
- * Carries sign-out already, because the nav shell cannot be verified without it: the
- * app graph must be provably unreachable once the session ends.
- */
-@Composable
-fun SettingsScreen(
-    displayName: String,
-    onBack: () -> Unit,
-    onSignOut: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    CashetteScreen(title = "Settings", onBack = onBack, modifier = modifier) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = displayName,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "Profile, password and assistant memory land here next.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                AuthTextLink("Sign out", onSignOut)
-            }
-        }
-    }
-}
+
 
 @Composable
 private fun Placeholder(

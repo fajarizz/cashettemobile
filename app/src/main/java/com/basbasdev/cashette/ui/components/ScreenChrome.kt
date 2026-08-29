@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
@@ -49,6 +50,7 @@ fun CashetteScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
+    transparentTopBar: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -62,6 +64,7 @@ fun CashetteScreen(
                 onBack = onBack,
                 actions = actions,
                 scrollBehavior = scrollBehavior,
+                transparent = transparentTopBar,
             )
         },
         content = content,
@@ -76,6 +79,7 @@ fun CashetteTopBar(
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
+    transparent: Boolean = false,
 ) {
     TopAppBar(
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
@@ -92,8 +96,8 @@ fun CashetteTopBar(
         },
         actions = { actions() },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            containerColor = if (transparent) Color.Transparent else MaterialTheme.colorScheme.background,
+            scrolledContainerColor = if (transparent) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
         ),
         scrollBehavior = scrollBehavior,

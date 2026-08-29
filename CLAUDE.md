@@ -114,6 +114,28 @@ load-bearing identity, not a preference.
 this app. Grouped lists use `groupTop/Middle/Bottom` so a run of rows reads as one
 object.
 
+## Buttons & Interactive Controls (FAT M3 Expressive)
+
+Buttons in Cashette are intentionally chunky, tactile, and prominent:
+
+- **FAT Sizing**:
+  - Primary actions, Sheet submit buttons, Sign out, and bottom CTAs must be **54dp to 56dp in height** (never flimsy 36dp–40dp default buttons).
+  - Secondary/dialog action buttons must be at least **52dp to 54dp in height**.
+  - Small pill chips / filters maintain 36dp–40dp with pill shape.
+- **Pill Shape Contract**:
+  - Always `CashetteShape.Pill` (`RoundedCornerShape(percent = 50)`). No square or small-radius rectangular buttons anywhere.
+- **Typography & Weight**:
+  - Use `MaterialTheme.typography.titleMedium` or bold `titleSmall` / `labelLarge` with `FontWeight.SemiBold` or `FontWeight.Bold`.
+- **Icon Pairing**:
+  - Accompanying icons are 18dp–20dp from Hugeicons (`res/drawable/ic_*.xml`) with 8dp–10dp horizontal spacing.
+- **Zero Drop Shadows**:
+  - Drop shadows are strictly prohibited on buttons and cards across the app. Depth and contrast come from tone separation, containers, and subtle borders.
+- **Semantic Hierarchy**:
+  - Primary CTA: `primary` (wheat/cream inversion) on `onPrimary`.
+  - Secondary / Tonal: `secondaryContainer` on `onSecondaryContainer`.
+  - Destructive (Sign out, Delete, Clear): `errorContainer` on `onErrorContainer` or `error` on `onError`.
+  - Cancel / Neutral Outlined: `OutlinedButton` with `CashetteShape.Pill` and matching fat height.
+
 ## Motion
 
 `ui/theme/Motion.kt`, with `MotionScheme.expressive()` driving components.

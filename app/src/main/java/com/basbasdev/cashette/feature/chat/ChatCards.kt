@@ -456,20 +456,27 @@ private fun Actions(turn: ChatTurn, onConfirm: () -> Unit, onCancel: () -> Unit)
     if (turn.settled) return
 
     Spacer(Modifier.height(16.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         OutlinedButton(
             onClick = onCancel,
             shape = CashetteShape.Pill,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .height(52.dp),
         ) {
-            Text("Cancel", style = MaterialTheme.typography.labelLarge)
+            Text("Cancel", style = MaterialTheme.typography.titleSmall)
         }
         Button(
             onClick = onConfirm,
             shape = CashetteShape.Pill,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .height(52.dp),
         ) {
-            Text("Confirm", style = MaterialTheme.typography.labelLarge)
+            Text("Confirm", style = MaterialTheme.typography.titleSmall)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.basbasdev.cashette.feature.home
 
 import java.math.BigDecimal
+import java.time.LocalDate
 
 /**
  * Home is fed by five independent calls, so failure is per-section. If /accounts times
@@ -102,9 +103,23 @@ data class Accounts(
     val pocketCount: Int,
 )
 
+data class DailyPoint(
+    val day: Int,
+    val amount: BigDecimal,
+    val date: LocalDate,
+)
+
+data class DailyTrendData(
+    val points: List<DailyPoint>,
+    val totalExpense: BigDecimal,
+    val averageDaily: BigDecimal,
+    val maxDaily: BigDecimal,
+)
+
 data class HomeUiState(
     val monthLabel: String = "",
     val hero: Section<Hero> = Section.Loading,
+    val dailyTrend: Section<DailyTrendData> = Section.Loading,
     val spending: Section<List<CategoryBurn>> = Section.Loading,
     val recent: Section<List<TxRow>> = Section.Loading,
     val bill: Section<Bill?> = Section.Loading,

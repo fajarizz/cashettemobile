@@ -75,10 +75,8 @@ fun HistoryScreen(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
-        // Search and filters are the screen, not a mode of it. Behind a toggle they cost
-        // a tap and, worse, they were invisible: nothing said this list could be searched.
-        // The bar they replace held a title reading "History" above a selected History
-        // tab, which is the one thing on this screen nobody needed told.
+        Spacer(Modifier.height(8.dp))
+
         SearchField(
             query = state.query,
             onQueryChange = viewModel::setQuery,
@@ -86,8 +84,15 @@ fun HistoryScreen(
             onClear = viewModel::clearFilters,
         )
 
+        Spacer(Modifier.height(8.dp))
+
         RangeChips(state.range, viewModel::setRange)
+
+        Spacer(Modifier.height(8.dp))
+
         Filters(state, viewModel)
+
+        Spacer(Modifier.height(8.dp))
 
         Column(Modifier.fillMaxSize()) {
             when (val section = state.all) {
@@ -194,7 +199,7 @@ private fun SearchField(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp),
     ) {
         SearchBarDefaults.InputField(
             query = query,
@@ -230,41 +235,38 @@ private fun SearchField(
 
 @Composable
 private fun Filters(state: HistoryUiState, viewModel: HistoryViewModel) {
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Spacer(Modifier.height(8.dp))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TxKind.entries.forEach { kind ->
-                FilterChip(
-                    selected = state.kindFilter == kind,
-                    onClick = { viewModel.setKind(if (state.kindFilter == kind) null else kind) },
-                    label = {
-                        Text(
-                            text = kind.name.lowercase().replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    },
-                    shape = CashetteShape.Pill,
-                )
-            }
-            state.accounts.forEach { account ->
-                FilterChip(
-                    selected = state.accountFilter?.id == account.id,
-                    onClick = {
-                        viewModel.setAccount(
-                            if (state.accountFilter?.id == account.id) null else account,
-                        )
-                    },
-                    label = { Text(account.name, style = MaterialTheme.typography.labelMedium) },
-                    shape = CashetteShape.Pill,
-                )
-            }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TxKind.entries.forEach { kind ->
+            FilterChip(
+                selected = state.kindFilter == kind,
+                onClick = { viewModel.setKind(if (state.kindFilter == kind) null else kind) },
+                label = {
+                    Text(
+                        text = kind.name.lowercase().replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                },
+                shape = CashetteShape.Pill,
+            )
         }
-        Spacer(Modifier.height(4.dp))
+        state.accounts.forEach { account ->
+            FilterChip(
+                selected = state.accountFilter?.id == account.id,
+                onClick = {
+                    viewModel.setAccount(
+                        if (state.accountFilter?.id == account.id) null else account,
+                    )
+                },
+                label = { Text(account.name, style = MaterialTheme.typography.labelMedium) },
+                shape = CashetteShape.Pill,
+            )
+        }
     }
 }
 
@@ -273,7 +275,7 @@ private fun Totals(state: HistoryUiState) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(top = 4.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Column {

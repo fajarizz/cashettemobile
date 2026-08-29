@@ -1,4 +1,4 @@
-﻿package com.basbasdev.cashette.feature.home
+package com.basbasdev.cashette.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -73,6 +73,7 @@ class HomeViewModel @Inject constructor(
                 _state.update { current ->
                     current.copy(
                         hero = heroSection(sum, tx, accountsSummary.getOrNull()),
+                        dailyTrend = tx.map { rows -> calculateDailyTrend(rows, month) }.toSection(),
                         spending = tx.map { rows -> categoryBurn(rows, bud.getOrNull()) }.toSection(),
                         recent = tx.map(::recentRows).toSection(),
                         bill = sub.map(::nextBill).toSection(),
@@ -204,6 +205,49 @@ class HomeViewModel @Inject constructor(
             },
             pocketTotal = pockets.fold(BigDecimal.ZERO) { acc, p -> acc + p.balance.toAmount() },
             pocketCount = pockets.size,
+        )
+    }
+
+    private fun calculateDailyTrend(
+        transactions: List<TransactionDto>,
+        month: YearMonth,
+    ): DailyTrendData {
+        val today = LocalDate.now()
+        val isCurrentMonth = (month == YearMonth.from(today))
+        val endDay = if (isCurrentMonth) today.dayOfMonth else month.lengthOfMonth()
+
+        val expenseTxs = transactions.filter { it.type == "expense" }
+        val expenseByDay = mutableMapOf<Int, BigDecimal>()
+
+        for (tx in expenseTxs) {
+            val date = tx.transactionDate.toLocalDateOrNull()
+            if (date != null && date.year == month.year && date.monthValue == month.monthValue) {
+                val day = date.dayOfMonth
+                expenseByDay[day] = (expenseByDay[day] ?: BigDecimal.ZERO) + tx.amount.toAmount()
+            }
+        }
+
+        val points = (1..endDay).map { d ->
+            DailyPoint(
+                day = d,
+                amount = expenseByDay[d] ?: BigDecimal.ZERO,
+                date = month.atDay(d),
+            )
+        }
+
+        val totalExpense = points.fold(BigDecimal.ZERO) { acc, p -> acc + p.amount }
+        val avg = if (points.isNotEmpty()) {
+            totalExpense.divide(BigDecimal.valueOf(points.size.toLong()), 0, java.math.RoundingMode.HALF_UP)
+        } else {
+            BigDecimal.ZERO
+        }
+        val max = points.maxOfOrNull { it.amount }?.takeIf { it > BigDecimal.ZERO } ?: BigDecimal.ONE
+
+        return DailyTrendData(
+            points = points,
+            totalExpense = totalExpense,
+            averageDaily = avg,
+            maxDaily = max,
         )
     }
 

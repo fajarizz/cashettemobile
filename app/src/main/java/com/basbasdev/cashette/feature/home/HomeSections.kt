@@ -4,8 +4,12 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,11 +28,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -37,6 +52,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.basbasdev.cashette.R
 import com.basbasdev.cashette.core.money.toIdr
 import com.basbasdev.cashette.core.money.toSignedIdr
@@ -49,6 +65,8 @@ import com.basbasdev.cashette.ui.theme.CashetteShape
 import com.basbasdev.cashette.ui.theme.CashetteText
 import com.basbasdev.cashette.ui.theme.CashetteTheme
 import java.math.BigDecimal
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 // ── The hero ─────────────────────────────────────────────────────────────────
 
@@ -343,5 +361,262 @@ private fun String.accountIcon(): Int = when (this) {
     else -> R.drawable.ic_account_cash
 }
 
-// Shared primitives — Money, Caption, Rail, Skeleton, SectionHeader, SectionError —
-// live in ui/components/Primitives.kt, because Chat needs them too.
+@Composable
+fun SpendingTrendCard(
+    data: DailyTrendData,
+    monthLabel: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+) {
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    val activePoint = selectedIndex?.let { data.points.getOrNull(it) }
+
+    val displayAmount = activePoint?.amount ?: data.totalExpense
+    val dateLabel = activePoint?.date?.format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))
+
+    Surface(
+        shape = CashetteShape.Hero,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column {
+                    Text(
+                        text = if (activePoint != null) "SPENDING ON $dateLabel".uppercase() else "SPENDING TREND · $monthLabel".uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 1.sp,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Money(
+                        text = displayAmount.toIdr(),
+                        spoken = displayAmount.toSpokenIdr(),
+                        style = CashetteText.MoneyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+                Surface(
+                    shape = CashetteShape.Pill,
+                    color = if (activePoint != null) MaterialTheme.colorScheme.secondaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    Text(
+                        text = if (activePoint != null) "Day ${activePoint.day}" else "Avg. ${data.averageDaily.toIdr()}/d",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (activePoint != null) MaterialTheme.colorScheme.onSecondaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            MinimalistLineChart(
+                points = data.points,
+                maxAmount = data.maxDaily,
+                averageAmount = data.averageDaily,
+                selectedIndex = selectedIndex,
+                onSelectIndex = { selectedIndex = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp),
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "1st",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+                if (data.points.size > 10) {
+                    Text(
+                        text = "${data.points.size / 2}th",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                }
+                Text(
+                    text = "${data.points.size}th",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MinimalistLineChart(
+    points: List<DailyPoint>,
+    maxAmount: BigDecimal,
+    averageAmount: BigDecimal,
+    selectedIndex: Int?,
+    onSelectIndex: (Int?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
+    Canvas(
+        modifier = modifier
+            .pointerInput(points) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        onSelectIndex(findClosestIndex(offset.x, size.width.toFloat(), points.size))
+                    },
+                    onDrag = { change, _ ->
+                        onSelectIndex(findClosestIndex(change.position.x, size.width.toFloat(), points.size))
+                    },
+                    onDragEnd = { onSelectIndex(null) },
+                    onDragCancel = { onSelectIndex(null) },
+                )
+            }
+            .pointerInput(points) {
+                detectTapGestures(
+                    onPress = { offset ->
+                        onSelectIndex(findClosestIndex(offset.x, size.width.toFloat(), points.size))
+                        tryAwaitRelease()
+                        onSelectIndex(null)
+                    },
+                )
+            },
+    ) {
+        val width = size.width
+        val height = size.height
+        if (points.isEmpty() || width <= 0f || height <= 0f) return@Canvas
+
+        val maxVal = maxAmount.toFloat().coerceAtLeast(1f)
+        val padTop = 8.dp.toPx()
+        val padBottom = 8.dp.toPx()
+        val usableHeight = height - padTop - padBottom
+
+        fun getX(index: Int): Float {
+            return if (points.size <= 1) width / 2f
+            else (index.toFloat() / (points.size - 1)) * width
+        }
+
+        fun getY(amount: BigDecimal): Float {
+            val ratio = (amount.toFloat() / maxVal).coerceIn(0f, 1f)
+            return padTop + (1f - ratio) * usableHeight
+        }
+
+        val offsets = points.mapIndexed { idx, p ->
+            Offset(getX(idx), getY(p.amount))
+        }
+
+        if (averageAmount > BigDecimal.ZERO) {
+            val avgY = getY(averageAmount)
+            drawLine(
+                color = outlineVariant.copy(alpha = 0.35f),
+                start = Offset(0f, avgY),
+                end = Offset(width, avgY),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)),
+            )
+        }
+
+        val strokePath = Path()
+        val fillPath = Path()
+
+        if (offsets.size == 1) {
+            strokePath.moveTo(0f, offsets[0].y)
+            strokePath.lineTo(width, offsets[0].y)
+            fillPath.moveTo(0f, offsets[0].y)
+            fillPath.lineTo(width, offsets[0].y)
+            fillPath.lineTo(width, height)
+            fillPath.lineTo(0f, height)
+            fillPath.close()
+        } else {
+            strokePath.moveTo(offsets[0].x, offsets[0].y)
+            fillPath.moveTo(offsets[0].x, offsets[0].y)
+
+            for (i in 0 until offsets.size - 1) {
+                val p0 = offsets[i]
+                val p1 = offsets[i + 1]
+                val dx = p1.x - p0.x
+                val cp1 = Offset(p0.x + dx / 2f, p0.y)
+                val cp2 = Offset(p0.x + dx / 2f, p1.y)
+                strokePath.cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, p1.x, p1.y)
+                fillPath.cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, p1.x, p1.y)
+            }
+
+            fillPath.lineTo(offsets.last().x, height)
+            fillPath.lineTo(offsets.first().x, height)
+            fillPath.close()
+        }
+
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    primaryColor.copy(alpha = 0.22f),
+                    primaryColor.copy(alpha = 0.03f),
+                    Color.Transparent,
+                ),
+                startY = padTop,
+                endY = height,
+            ),
+        )
+
+        drawPath(
+            path = strokePath,
+            color = primaryColor,
+            style = Stroke(
+                width = 2.5.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            ),
+        )
+
+        selectedIndex?.let { selIdx ->
+            val selOffset = offsets.getOrNull(selIdx)
+            if (selOffset != null) {
+                drawLine(
+                    color = primaryColor.copy(alpha = 0.4f),
+                    start = Offset(selOffset.x, 0f),
+                    end = Offset(selOffset.x, height),
+                    strokeWidth = 1.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)),
+                )
+
+                drawCircle(
+                    color = primaryColor.copy(alpha = 0.25f),
+                    radius = 11.dp.toPx(),
+                    center = selOffset,
+                )
+                drawCircle(
+                    color = surfaceColor,
+                    radius = 6.dp.toPx(),
+                    center = selOffset,
+                )
+                drawCircle(
+                    color = primaryColor,
+                    radius = 4.5.dp.toPx(),
+                    center = selOffset,
+                )
+            }
+        }
+    }
+}
+
+private fun findClosestIndex(touchX: Float, width: Float, count: Int): Int {
+    if (count <= 1 || width <= 0f) return 0
+    val ratio = (touchX / width).coerceIn(0f, 1f)
+    return (ratio * (count - 1)).toInt().coerceIn(0, count - 1)
+}
